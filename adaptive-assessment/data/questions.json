@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "text": "What is 2 + 2?",
+    "options": ["3", "4", "5", "6"],
+    "answer": "4",
+    "difficulty": "easy",
+    "topic": "Math"
+  },
+  {
+    "id": 2,
+    "text": "Binary search time complexity?",
+    "options": ["O(n)", "O(log n)", "O(n^2)", "O(1)"],
+    "answer": "O(log n)",
+    "difficulty": "medium",
+    "topic": "DSA"
+  },
+  {
+    "id": 3,
+    "text": "What is dynamic programming?",
+    "options": ["Greedy", "Divide and Conquer", "Optimization technique", "Sorting"],
+    "answer": "Optimization technique",
+    "difficulty": "hard",
+    "topic": "DSA"
+  }
+]
