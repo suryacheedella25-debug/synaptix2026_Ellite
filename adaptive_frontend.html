@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive Assessment Platform</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Space Grotesk', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.8; }
+      100% { transform: scale(0.95); opacity: 1; }
+    }
+    
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes progress-fill {
+      from { width: 0%; }
+    }
+    
+    .animate-pulse-ring { animation: pulse-ring 2s ease-in-out infinite; }
+    .animate-slide-up { animation: slide-up 0.5s ease-out forwards; }
+    .animate-progress { animation: progress-fill 0.5s ease-out; }
+    
+    .difficulty-easy { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+    .difficulty-medium { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    .difficulty-hard { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+    .difficulty-expert { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .mastery-bar {
+      background: linear-gradient(90deg, #ef4444 0%, #f59e0b 33%, #10b981 66%, #8b5cf6 100%);
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full overflow-auto">
+  <div id="app" class="min-h-full w-full" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);"><!-- Welcome Screen -->
+   <div id="welcome-screen" class="min-h-full flex items-center justify-center p-6">
+    <div class="glass-card rounded-3xl p-10 max-w-2xl w-full text-center animate-slide-up shadow-2xl">
+     <div class="w-24 h-24 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center animate-pulse-ring">
+      <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+      </svg>
+     </div>
+     <h1 id="platform-title" class="text-4xl font-bold text-slate-800 mb-4">Adaptive Assessment</h1>
+     <p id="welcome-message" class="text-slate-600 text-lg mb-8">Experience personalized testing that adapts to your skill level in real-time</p>
+     <div class="mb-8"><label class="block text-left text-slate-700 font-medium mb-2">Enter Your Name</label> <input type="text" id="student-name" placeholder="Your name..." class="w-full px-5 py-4 rounded-xl border-2 border-slate-200 focus:border-violet-500 focus:outline-none text-lg transition-colors">
+     </div>
+     <div class="grid grid-cols-3 gap-4 mb-8 text-left">
+      <div class="p-4 bg-emerald-50 rounded-xl">
+       <div class="text-emerald-600 font-semibold mb-1">
+        📊 Adaptive
+       </div>
+       <p class="text-sm text-slate-600">Questions adjust to your level</p>
+      </div>
+      <div class="p-4 bg-amber-50 rounded-xl">
+       <div class="text-amber-600 font-semibold mb-1">
+        ⚡ Real-time
+       </div>
+       <p class="text-sm text-slate-600">Instant difficulty scaling</p>
+      </div>
+      <div class="p-4 bg-violet-50 rounded-xl">
+       <div class="text-violet-600 font-semibold mb-1">
+        🎯 Insights
+       </div>
+       <p class="text-sm text-slate-600">Detailed competency profile</p>
+      </div>
+     </div><button id="start-btn" onclick="startAssessment()" class="w-full py-4 px-8 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-violet-700 hover:to-purple-700 transition-all transform hover:scale-[1.02] shadow-lg"> Begin Assessment </button>
+    </div>
+   </div><!-- Assessment Screen -->
+   <div id="assessment-screen" class="hidden min-h-full p-6">
+    <div class="max-w-4xl mx-auto"><!-- Header -->
+     <div class="glass-card rounded-2xl p-6 mb-6 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+       <div id="question-counter" class="mono text-2xl font-bold text-slate-800">
+        1/15
+       </div>
+       <div id="difficulty-badge" class="px-4 py-2 rounded-full text-white font-medium difficulty-easy">
+        Easy
+       </div>
+      </div>
+      <div class="flex items-center gap-6">
+       <div class="text-center">
+        <div class="text-sm text-slate-500">
+         Score
+        </div>
+        <div id="current-score" class="mono text-xl font-bold text-violet-600">
+         0
+        </div>
+       </div>
+       <div class="text-center">
+        <div class="text-sm text-slate-500">
+         Streak
+        </div>
+        <div id="streak-counter" class="mono text-xl font-bold text-emerald-600">
+         0 🔥
+        </div>
+       </div>
+       <div class="text-center">
+        <div class="text-sm text-slate-500">
+         Time
+        </div>
+        <div id="timer" class="mono text-xl font-bold text-slate-700">
+         0:00
+        </div>
+       </div>
+      </div>
+     </div><!-- Progress Bar -->
+     <div class="glass-card rounded-xl p-4 mb-6">
+      <div class="flex justify-between text-sm text-slate-600 mb-2"><span>Progress</span> <span id="progress-percent">0%</span>
+      </div>
+      <div class="h-3 bg-slate-200 rounded-full overflow-hidden">
+       <div id="progress-bar" class="h-full mastery-bar rounded-full transition-all duration-500" style="width: 0%"></div>
+      </div>
+     </div><!-- Question Card -->
+     <div class="glass-card rounded-3xl p-8 mb-6 animate-slide-up">
+      <div class="flex items-center gap-3 mb-6"><span id="topic-badge" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm font-medium">Mathematics</span> <span id="points-badge" class="px-3 py-1 bg-violet-100 text-violet-600 rounded-full text-sm font-medium">+10 pts</span>
+      </div>
+      <h2 id="question-text" class="text-2xl font-semibold text-slate-800 mb-8">Loading question...</h2>
+      <div id="options-container" class="space-y-4"><!-- Options will be rendered here -->
+      </div>
+     </div><!-- Performance Indicators -->
+     <div class="grid grid-cols-3 gap-4">
+      <div class="glass-card rounded-xl p-4">
+       <div class="text-sm text-slate-500 mb-1">
+        Mathematics
+       </div>
+       <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+        <div id="math-progress" class="h-full bg-emerald-500 rounded-full transition-all" style="width: 0%"></div>
+       </div>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+       <div class="text-sm text-slate-500 mb-1">
+        Logical Reasoning
+       </div>
+       <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+        <div id="logic-progress" class="h-full bg-amber-500 rounded-full transition-all" style="width: 0%"></div>
+       </div>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+       <div class="text-sm text-slate-500 mb-1">
+        Verbal Skills
+       </div>
+       <div class="h-2 bg-slate-200 rounded-full overflow-hidden">
+        <div id="verbal-progress" class="h-full bg-violet-500 rounded-full transition-all" style="width: 0%"></div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div><!-- Results Screen -->
+   <div id="results-screen" class="hidden min-h-full p-6">
+    <div class="max-w-4xl mx-auto">
+     <div class="glass-card rounded-3xl p-10 mb-6 text-center animate-slide-up">
+      <div id="result-icon" class="w-32 h-32 mx-auto mb-6 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center">
+       <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+       </svg>
+      </div>
+      <h2 class="text-3xl font-bold text-slate-800 mb-2">Assessment Complete!</h2>
+      <p id="student-result-name" class="text-slate-600 text-lg mb-6">Great job, Student!</p>
+      <div class="grid grid-cols-4 gap-4 mb-8">
+       <div class="p-4 bg-violet-50 rounded-xl">
+        <div class="mono text-3xl font-bold text-violet-600" id="final-score-display">
+         0
+        </div>
+        <div class="text-sm text-slate-600">
+         Final Score
+        </div>
+       </div>
+       <div class="p-4 bg-emerald-50 rounded-xl">
+        <div class="mono text-3xl font-bold text-emerald-600" id="accuracy-display">
+         0%
+        </div>
+        <div class="text-sm text-slate-600">
+         Accuracy
+        </div>
+       </div>
+       <div class="p-4 bg-amber-50 rounded-xl">
+        <div class="mono text-3xl font-bold text-amber-600" id="avg-difficulty-display">
+         1.0
+        </div>
+        <div class="text-sm text-slate-600">
+         Avg Difficulty
+        </div>
+       </div>
+       <div class="p-4 bg-slate-100 rounded-xl">
+        <div class="mono text-3xl font-bold text-slate-700" id="time-display">
+         0:00
+        </div>
+        <div class="text-sm text-slate-600">
+         Time Taken
+        </div>
+       </div>
+      </div>
+     </div><!-- Competency Profile -->
+     <div class="glass-card rounded-3xl p-8 mb-6 animate-slide-up" style="animation-delay: 0.1s">
+      <h3 class="text-2xl font-bold text-slate-800 mb-6">📊 Competency Profile</h3>
+      <div class="space-y-6">
+       <div>
+        <div class="flex justify-between mb-2"><span class="font-medium text-slate-700">Mathematics</span> <span id="math-mastery-text" class="mono font-bold text-emerald-600">0%</span>
+        </div>
+        <div class="h-4 bg-slate-200 rounded-full overflow-hidden">
+         <div id="math-mastery-bar" class="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+        </div>
+        <p id="math-feedback" class="text-sm text-slate-500 mt-1">Loading analysis...</p>
+       </div>
+       <div>
+        <div class="flex justify-between mb-2"><span class="font-medium text-slate-700">Logical Reasoning</span> <span id="logic-mastery-text" class="mono font-bold text-amber-600">0%</span>
+        </div>
+        <div class="h-4 bg-slate-200 rounded-full overflow-hidden">
+         <div id="logic-mastery-bar" class="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+        </div>
+        <p id="logic-feedback" class="text-sm text-slate-500 mt-1">Loading analysis...</p>
+       </div>
+       <div>
+        <div class="flex justify-between mb-2"><span class="font-medium text-slate-700">Verbal Skills</span> <span id="verbal-mastery-text" class="mono font-bold text-violet-600">0%</span>
+        </div>
+        <div class="h-4 bg-slate-200 rounded-full overflow-hidden">
+         <div id="verbal-mastery-bar" class="h-full bg-gradient-to-r from-violet-400 to-violet-600 rounded-full transition-all duration-1000" style="width: 0%"></div>
+        </div>
+        <p id="verbal-feedback" class="text-sm text-slate-500 mt-1">Loading analysis...</p>
+       </div>
+      </div>
+     </div><!-- Strengths & Weaknesses -->
+     <div class="grid grid-cols-2 gap-6 mb-6">
+      <div class="glass-card rounded-2xl p-6 animate-slide-up" style="animation-delay: 0.2s">
+       <h4 class="text-xl font-bold text-emerald-600 mb-4">💪 Strengths</h4>
+       <ul id="strengths-list" class="space-y-2">
+        <li class="flex items-center gap-2 text-slate-700"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span> Analyzing...</li>
+       </ul>
+      </div>
+      <div class="glass-card rounded-2xl p-6 animate-slide-up" style="animation-delay: 0.3s">
+       <h4 class="text-xl font-bold text-amber-600 mb-4">🎯 Areas to Improve</h4>
+       <ul id="weaknesses-list" class="space-y-2">
+        <li class="flex items-center gap-2 text-slate-700"><span class="w-2 h-2 bg-amber-500 rounded-full"></span> Analyzing...</li>
+       </ul>
+      </div>
+     </div><!-- Performance Level -->
+     <div class="glass-card rounded-2xl p-6 mb-6 animate-slide-up" style="animation-delay: 0.4s">
+      <h4 class="text-xl font-bold text-slate-800 mb-4">🏆 Performance Level</h4>
+      <div id="performance-level" class="flex items-center gap-4">
+       <div class="w-16 h-16 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-3xl">
+        🌟
+       </div>
+       <div>
+        <div id="level-title" class="text-2xl font-bold text-slate-800">
+         Proficient
+        </div>
+        <div id="level-description" class="text-slate-600">
+         You demonstrate solid understanding across topics
+        </div>
+       </div>
+      </div>
+     </div><!-- Actions -->
+     <div class="flex gap-4"><button onclick="restartAssessment()" class="flex-1 py-4 px-8 bg-gradient-to-r from-violet-600 to-purple-600 text-white text-lg font-semibold rounded-xl hover:from-violet-700 hover:to-purple-700 transition-all"> Take Another Assessment </button> <button onclick="showHistory()" class="py-4 px-8 bg-white text-violet-600 text-lg font-semibold rounded-xl border-2 border-violet-200 hover:border-violet-400 transition-all"> View History </button>
+     </div>
+    </div>
+   </div><!-- History Screen -->
+   <div id="history-screen" class="hidden min-h-full p-6">
+    <div class="max-w-4xl mx-auto">
+     <div class="glass-card rounded-3xl p-8 mb-6">
+      <div class="flex items-center justify-between mb-6">
+       <h2 class="text-2xl font-bold text-slate-800">📚 Assessment History</h2><button onclick="hideHistory()" class="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"> ← Back </button>
+      </div>
+      <div id="history-list" class="space-y-4">
+       <p class="text-slate-500 text-center py-8">No previous assessments found</p>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    // Question Bank with difficulty levels (1-4) and topics
+    const questionBank = {
+      math: [
+        { q: "What is 15 + 27?", options: ["42", "41", "43", "40"], correct: 0, difficulty: 1 },
+        { q: "Calculate: 8 × 7", options: ["54", "56", "58", "52"], correct: 1, difficulty: 1 },
+        { q: "What is 144 ÷ 12?", options: ["11", "13", "12", "14"], correct: 2, difficulty: 2 },
+        { q: "Solve: 3x + 7 = 22", options: ["x = 5", "x = 6", "x = 4", "x = 7"], correct: 0, difficulty: 2 },
+        { q: "What is the square root of 169?", options: ["12", "14", "13", "11"], correct: 2, difficulty: 2 },
+        { q: "Calculate: (5² + 3²)", options: ["34", "32", "36", "30"], correct: 0, difficulty: 3 },
+        { q: "Solve: 2x² = 32", options: ["x = ±4", "x = ±3", "x = ±5", "x = ±2"], correct: 0, difficulty: 3 },
+        { q: "What is log₁₀(1000)?", options: ["2", "4", "3", "5"], correct: 2, difficulty: 3 },
+        { q: "Find the derivative of x³", options: ["3x²", "x²", "3x", "2x²"], correct: 0, difficulty: 4 },
+        { q: "Calculate: ∫2x dx", options: ["x²+C", "2x²+C", "x+C", "2x+C"], correct: 0, difficulty: 4 }
+      ],
+      logic: [
+        { q: "What comes next: 2, 4, 6, 8, ?", options: ["9", "10", "11", "12"], correct: 1, difficulty: 1 },
+        { q: "If all roses are flowers, and all flowers need water, then:", options: ["Roses need water", "Water needs roses", "Flowers are roses", "None"], correct: 0, difficulty: 1 },
+        { q: "Complete: 1, 4, 9, 16, ?", options: ["20", "25", "24", "21"], correct: 1, difficulty: 2 },
+        { q: "If A > B and B > C, then:", options: ["C > A", "A > C", "A = C", "Cannot determine"], correct: 1, difficulty: 2 },
+        { q: "Next in sequence: 2, 6, 12, 20, ?", options: ["28", "30", "32", "26"], correct: 1, difficulty: 3 },
+        { q: "If some A are B, and all B are C, then:", options: ["All A are C", "Some A are C", "No A are C", "All C are A"], correct: 1, difficulty: 3 },
+        { q: "Find the pattern: 1, 1, 2, 3, 5, ?", options: ["7", "8", "6", "9"], correct: 1, difficulty: 3 },
+        { q: "If P → Q and ¬Q, then:", options: ["P", "¬P", "Q", "Cannot determine"], correct: 1, difficulty: 4 },
+        { q: "Next: 1, 4, 27, 256, ?", options: ["3125", "625", "1024", "729"], correct: 0, difficulty: 4 }
+      ],
+      verbal: [
+        { q: "Choose the synonym for 'Happy':", options: ["Sad", "Joyful", "Angry", "Tired"], correct: 1, difficulty: 1 },
+        { q: "What is the antonym of 'Ancient'?", options: ["Old", "Modern", "Classic", "Historic"], correct: 1, difficulty: 1 },
+        { q: "Choose the correct word: The cat ___ on the mat.", options: ["sat", "sit", "sitted", "sitting"], correct: 0, difficulty: 1 },
+        { q: "Identify the noun: 'The quick brown fox jumps.'", options: ["quick", "brown", "fox", "jumps"], correct: 2, difficulty: 2 },
+        { q: "What does 'Ephemeral' mean?", options: ["Eternal", "Short-lived", "Beautiful", "Dangerous"], correct: 1, difficulty: 3 },
+        { q: "Choose the synonym for 'Ubiquitous':", options: ["Rare", "Everywhere", "Unique", "Ancient"], correct: 1, difficulty: 3 },
+        { q: "What is the meaning of 'Juxtaposition'?", options: ["Separation", "Placement side by side", "Opposition", "Combination"], correct: 1, difficulty: 3 },
+        { q: "Identify the oxymoron:", options: ["Dark night", "Deafening silence", "Loud noise", "Bright sun"], correct: 1, difficulty: 4 },
+        { q: "'Sesquipedalian' means:", options: ["Short", "Using long words", "Musical", "Ancient"], correct: 1, difficulty: 4 }
+      ]
+    };
+
+    // State
+    let state = {
+      studentName: '',
+      currentQuestion: 0,
+      totalQuestions: 15,
+      score: 0,
+      streak: 0,
+      maxStreak: 0,
+      difficulty: 1,
+      startTime: null,
+      answers: [],
+      topicScores: { math: { correct: 0, total: 0 }, logic: { correct: 0, total: 0 }, verbal: { correct: 0, total: 0 } },
+      difficultyHistory: [],
+      usedQuestions: { math: [], logic: [], verbal: [] }
+    };
+
+    let assessmentHistory = [];
+    let timerInterval = null;
+
+    // Default config
+    const defaultConfig = {
+      platform_title: 'Adaptive Assessment',
+      welcome_message: 'Experience personalized testing that adapts to your skill level in real-time',
+      start_button_text: 'Begin Assessment',
+      background_color: '#0f172a',
+      surface_color: '#ffffff',
+      text_color: '#1e293b',
+      primary_color: '#7c3aed',
+      accent_color: '#10b981'
+    };
+
+    // Initialize Element SDK
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange: async (config) => {
+          const title = config.platform_title || defaultConfig.platform_title;
+          const message = config.welcome_message || defaultConfig.welcome_message;
+          const btnText = config.start_button_text || defaultConfig.start_button_text;
+          
+          document.getElementById('platform-title').textContent = title;
+          document.getElementById('welcome-message').textContent = message;
+          document.getElementById('start-btn').textContent = btnText;
+          
+          // Apply colors
+          const bg = config.background_color || defaultConfig.background_color;
+          const surface = config.surface_color || defaultConfig.surface_color;
+          const text = config.text_color || defaultConfig.text_color;
+          const primary = config.primary_color || defaultConfig.primary_color;
+          const accent = config.accent_color || defaultConfig.accent_color;
+          
+          document.getElementById('app').style.background = `linear-gradient(135deg, ${bg} 0%, ${lightenColor(bg, 20)} 50%, ${lightenColor(bg, 40)} 100%)`;
+          
+          document.querySelectorAll('.glass-card').forEach(el => {
+            el.style.background = `rgba(${hexToRgb(surface)}, 0.95)`;
+          });
+          
+          document.querySelectorAll('h1, h2, h3, .text-slate-800').forEach(el => {
+            el.style.color = text;
+          });
+          
+          document.getElementById('start-btn').style.background = `linear-gradient(to right, ${primary}, ${lightenColor(primary, 10)})`;
+        },
+        mapToCapabilities: (config) => ({
+          recolorables: [
+            { get: () => config.background_color || defaultConfig.background_color, set: (v) => window.elementSdk.setConfig({ background_color: v }) },
+            { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => window.elementSdk.setConfig({ surface_color: v }) },
+            { get: () => config.text_color || defaultConfig.text_color, set: (v) => window.elementSdk.setConfig({ text_color: v }) },
+            { get: () => config.primary_color || defaultConfig.primary_color, set: (v) => window.elementSdk.setConfig({ primary_color: v }) },
+            { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => window.elementSdk.setConfig({ accent_color: v }) }
+          ],
+          borderables: [],
+          fontEditable: undefined,
+          fontSizeable: undefined
+        }),
+        mapToEditPanelValues: (config) => new Map([
+          ['platform_title', config.platform_title || defaultConfig.platform_title],
+          ['welcome_message', config.welcome_message || defaultConfig.welcome_message],
+          ['start_button_text', config.start_button_text || defaultConfig.start_button_text]
+        ])
+      });
+    }
+
+    // Initialize Data SDK
+    const dataHandler = {
+      onDataChanged(data) {
+        assessmentHistory = data;
+        renderHistory();
+      }
+    };
+
+    if (window.dataSdk) {
+      window.dataSdk.init(dataHandler);
+    }
+
+    // Helper functions
+    function hexToRgb(hex) {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 255, 255';
+    }
+
+    function lightenColor(hex, percent) {
+      const num = parseInt(hex.replace('#', ''), 16);
+      const amt = Math.round(2.55 * percent);
+      const R = (num >> 16) + amt;
+      const G = (num >> 8 & 0x00FF) + amt;
+      const B = (num & 0x0000FF) + amt;
+      return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+    }
+
+    // Get question based on current difficulty and topic rotation
+    function getQuestion() {
+      const topics = ['math', 'logic', 'verbal'];
+      const topicIndex = state.currentQuestion % 3;
+      const topic = topics[topicIndex];
+      
+      const availableQuestions = questionBank[topic].filter((q, idx) => 
+        !state.usedQuestions[topic].includes(idx) && 
+        Math.abs(q.difficulty - state.difficulty) <= 1
+      );
+      
+      if (availableQuestions.length === 0) {
+        // Fallback to any unused question in topic
+        const fallback = questionBank[topic].filter((q, idx) => !state.usedQuestions[topic].includes(idx));
+        if (fallback.length > 0) {
+          const idx = questionBank[topic].indexOf(fallback[0]);
+          state.usedQuestions[topic].push(idx);
+          return { ...fallback[0], topic };
+        }
+        // Reset if all used
+        state.usedQuestions[topic] = [];
+        return { ...questionBank[topic][0], topic };
+      }
+      
+      // Prefer questions matching current difficulty
+      const exactMatch = availableQuestions.filter(q => q.difficulty === state.difficulty);
+      const selected = exactMatch.length > 0 ? exactMatch[Math.floor(Math.random() * exactMatch.length)] : availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
+      const idx = questionBank[topic].indexOf(selected);
+      state.usedQuestions[topic].push(idx);
+      
+      return { ...selected, topic };
+    }
+
+    // Adaptive difficulty adjustment
+    function adjustDifficulty(correct) {
+      if (correct) {
+        state.streak++;
+        state.maxStreak = Math.max(state.maxStreak, state.streak);
+        if (state.streak >= 3 && state.difficulty < 4) {
+          state.difficulty++;
+          state.streak = 0;
+        }
+      } else {
+        state.streak = 0;
+        if (state.difficulty > 1) {
+          state.difficulty--;
+        }
+      }
+      state.difficultyHistory.push(state.difficulty);
+    }
+
+    // Start assessment
+    function startAssessment() {
+      const nameInput = document.getElementById('student-name');
+      state.studentName = nameInput.value.trim() || 'Student';
+      state.startTime = Date.now();
+      state.currentQuestion = 0;
+      state.score = 0;
+      state.streak = 0;
+      state.maxStreak = 0;
+      state.difficulty = 1;
+      state.answers = [];
+      state.topicScores = { math: { correct: 0, total: 0 }, logic: { correct: 0, total: 0 }, verbal: { correct: 0, total: 0 } };
+      state.difficultyHistory = [1];
+      state.usedQuestions = { math: [], logic: [], verbal: [] };
+      
+      document.getElementById('welcome-screen').classList.add('hidden');
+      document.getElementById('assessment-screen').classList.remove('hidden');
+      
+      startTimer();
+      renderQuestion();
+    }
+
+    // Timer
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        document.getElementById('timer').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      }, 1000);
+    }
+
+    // Render current question
+    function renderQuestion() {
+      const question = getQuestion();
+      
+      document.getElementById('question-counter').textContent = `${state.currentQuestion + 1}/${state.totalQuestions}`;
+      document.getElementById('question-text').textContent = question.q;
+      
+      // Update difficulty badge
+      const diffBadge = document.getElementById('difficulty-badge');
+      const diffLabels = ['Easy', 'Medium', 'Hard', 'Expert'];
+      const diffClasses = ['difficulty-easy', 'difficulty-medium', 'difficulty-hard', 'difficulty-expert'];
+      diffBadge.textContent = diffLabels[state.difficulty - 1];
+      diffBadge.className = `px-4 py-2 rounded-full text-white font-medium ${diffClasses[state.difficulty - 1]}`;
+      
+      // Points based on difficulty
+      const points = state.difficulty * 10;
+      document.getElementById('points-badge').textContent = `+${points} pts`;
+      
+      // Topic badge
+      const topicLabels = { math: 'Mathematics', logic: 'Logical Reasoning', verbal: 'Verbal Skills' };
+      document.getElementById('topic-badge').textContent = topicLabels[question.topic];
+      
+      // Render options
+      const container = document.getElementById('options-container');
+      container.innerHTML = question.options.map((opt, idx) => `
+        <button onclick="selectAnswer(${idx}, ${question.correct}, '${question.topic}')" 
+          class="w-full p-5 text-left rounded-xl border-2 border-slate-200 hover:border-violet-400 hover:bg-violet-50 transition-all text-lg font-medium text-slate-700 option-btn">
+          <span class="inline-block w-8 h-8 rounded-lg bg-slate-100 text-center mr-3 text-slate-500">${String.fromCharCode(65 + idx)}</span>
+          ${opt}
+        </button>
+      `).join('');
+      
+      // Update progress
+      const progress = (state.currentQuestion / state.totalQuestions) * 100;
+      document.getElementById('progress-bar').style.width = `${progress}%`;
+      document.getElementById('progress-percent').textContent = `${Math.round(progress)}%`;
+      
+      updateTopicProgress();
+    }
+
+    // Handle answer selection
+    function selectAnswer(selected, correct, topic) {
+      const isCorrect = selected === correct;
+      const points = state.difficulty * 10;
+      
+      // Visual feedback
+      const buttons = document.querySelectorAll('.option-btn');
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === correct) {
+          btn.classList.add('bg-emerald-100', 'border-emerald-500');
+        } else if (idx === selected && !isCorrect) {
+          btn.classList.add('bg-red-100', 'border-red-500');
+        }
+      });
+      
+      // Update state
+      if (isCorrect) {
+        state.score += points;
+        state.topicScores[topic].correct++;
+      }
+      state.topicScores[topic].total++;
+      state.answers.push({ topic, difficulty: state.difficulty, correct: isCorrect });
+      
+      adjustDifficulty(isCorrect);
+      
+      // Update UI
+      document.getElementById('current-score').textContent = state.score;
+      document.getElementById('streak-counter').textContent = `${state.streak} 🔥`;
+      
+      // Next question or finish
+      setTimeout(() => {
+        state.currentQuestion++;
+        if (state.currentQuestion >= state.totalQuestions) {
+          finishAssessment();
+        } else {
+          renderQuestion();
+        }
+      }, 800);
+    }
+
+    // Update topic progress bars
+    function updateTopicProgress() {
+      const topics = ['math', 'logic', 'verbal'];
+      topics.forEach(topic => {
+        const data = state.topicScores[topic];
+        const pct = data.total > 0 ? (data.correct / data.total) * 100 : 0;
+        document.getElementById(`${topic}-progress`).style.width = `${pct}%`;
+      });
+    }
+
+    // Finish assessment
+    async function finishAssessment() {
+      clearInterval(timerInterval);
+      
+      const timeTaken = Math.floor((Date.now() - state.startTime) / 1000);
+      const avgDifficulty = state.difficultyHistory.reduce((a, b) => a + b, 0) / state.difficultyHistory.length;
+      const correctCount = state.answers.filter(a => a.correct).length;
+      const accuracy = (correctCount / state.totalQuestions) * 100;
+      
+      // Calculate mastery levels
+      const mathMastery = calculateMastery('math');
+      const logicMastery = calculateMastery('logic');
+      const verbalMastery = calculateMastery('verbal');
+      
+      // Determine performance level
+      const overallMastery = (mathMastery + logicMastery + verbalMastery) / 3;
+      const performanceLevel = getPerformanceLevel(overallMastery, avgDifficulty);
+      
+      // Save to Data SDK
+      if (window.dataSdk && assessmentHistory.length < 999) {
+        const result = await window.dataSdk.create({
+          student_name: state.studentName,
+          assessment_date: new Date().toISOString(),
+          total_questions: state.totalQuestions,
+          correct_answers: correctCount,
+          final_score: state.score,
+          avg_difficulty: Math.round(avgDifficulty * 10) / 10,
+          math_mastery: Math.round(mathMastery),
+          logic_mastery: Math.round(logicMastery),
+          verbal_mastery: Math.round(verbalMastery),
+          time_taken: timeTaken,
+          performance_level: performanceLevel.title
+        });
+        
+        if (!result.isOk) {
+          console.error('Failed to save assessment');
+        }
+      }
+      
+      // Show results
+      document.getElementById('assessment-screen').classList.add('hidden');
+      document.getElementById('results-screen').classList.remove('hidden');
+      
+      // Populate results
+      document.getElementById('student-result-name').textContent = `Great job, ${state.studentName}!`;
+      document.getElementById('final-score-display').textContent = state.score;
+      document.getElementById('accuracy-display').textContent = `${Math.round(accuracy)}%`;
+      document.getElementById('avg-difficulty-display').textContent = avgDifficulty.toFixed(1);
+      
+      const mins = Math.floor(timeTaken / 60);
+      const secs = timeTaken % 60;
+      document.getElementById('time-display').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      
+      // Animate mastery bars
+      setTimeout(() => {
+        document.getElementById('math-mastery-bar').style.width = `${mathMastery}%`;
+        document.getElementById('math-mastery-text').textContent = `${Math.round(mathMastery)}%`;
+        document.getElementById('math-feedback').textContent = getMasteryFeedback('Mathematics', mathMastery);
+        
+        document.getElementById('logic-mastery-bar').style.width = `${logicMastery}%`;
+        document.getElementById('logic-mastery-text').textContent = `${Math.round(logicMastery)}%`;
+        document.getElementById('logic-feedback').textContent = getMasteryFeedback('Logical Reasoning', logicMastery);
+        
+        document.getElementById('verbal-mastery-bar').style.width = `${verbalMastery}%`;
+        document.getElementById('verbal-mastery-text').textContent = `${Math.round(verbalMastery)}%`;
+        document.getElementById('verbal-feedback').textContent = getMasteryFeedback('Verbal Skills', verbalMastery);
+      }, 300);
+      
+      // Strengths and weaknesses
+      renderStrengthsWeaknesses(mathMastery, logicMastery, verbalMastery);
+      
+      // Performance level
+      document.getElementById('level-title').textContent = performanceLevel.title;
+      document.getElementById('level-description').textContent = performanceLevel.description;
+    }
+
+    // Calculate mastery for a topic
+    function calculateMastery(topic) {
+      const topicAnswers = state.answers.filter(a => a.topic === topic);
+      if (topicAnswers.length === 0) return 0;
+      
+      let weightedScore = 0;
+      let maxScore = 0;
+      
+      topicAnswers.forEach(a => {
+        const weight = a.difficulty;
+        maxScore += weight * 25;
+        if (a.correct) weightedScore += weight * 25;
+      });
+      
+      return (weightedScore / maxScore) * 100;
+    }
+
+    // Get mastery feedback
+    function getMasteryFeedback(topic, mastery) {
+      if (mastery >= 80) return `Excellent ${topic.toLowerCase()} skills! You demonstrate strong competency.`;
+      if (mastery >= 60) return `Good ${topic.toLowerCase()} foundation. Some advanced concepts need practice.`;
+      if (mastery >= 40) return `Developing ${topic.toLowerCase()} skills. Focus on fundamentals.`;
+      return `${topic} needs significant improvement. Start with basic concepts.`;
+    }
+
+    // Get performance level
+    function getPerformanceLevel(mastery, avgDiff) {
+      const combined = mastery * 0.7 + (avgDiff / 4 * 100) * 0.3;
+      
+      if (combined >= 85) return { title: 'Expert', description: 'Outstanding performance! You\'ve mastered complex concepts across all areas.' };
+      if (combined >= 70) return { title: 'Advanced', description: 'Excellent work! You show strong understanding of advanced topics.' };
+      if (combined >= 55) return { title: 'Proficient', description: 'Good job! You demonstrate solid understanding across topics.' };
+      if (combined >= 40) return { title: 'Developing', description: 'You\'re making progress. Continue practicing to strengthen your skills.' };
+      return { title: 'Beginner', description: 'Keep learning! Focus on building a strong foundation in each area.' };
+    }
+
+    // Render strengths and weaknesses
+    function renderStrengthsWeaknesses(math, logic, verbal) {
+      const scores = [
+        { topic: 'Mathematical calculations', score: math },
+        { topic: 'Logical reasoning patterns', score: logic },
+        { topic: 'Verbal comprehension', score: verbal }
+      ].sort((a, b) => b.score - a.score);
+      
+      const strengths = scores.filter(s => s.score >= 60);
+      const weaknesses = scores.filter(s => s.score < 60);
+      
+      const strengthsList = document.getElementById('strengths-list');
+      const weaknessesList = document.getElementById('weaknesses-list');
+      
+      if (strengths.length > 0) {
+        strengthsList.innerHTML = strengths.map(s => `
+          <li class="flex items-center gap-2 text-slate-700">
+            <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+            ${s.topic} (${Math.round(s.score)}%)
+          </li>
+        `).join('');
+      } else {
+        strengthsList.innerHTML = '<li class="text-slate-500">Continue practicing to develop strengths</li>';
+      }
+      
+      if (weaknesses.length > 0) {
+        weaknessesList.innerHTML = weaknesses.map(s => `
+          <li class="flex items-center gap-2 text-slate-700">
+            <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+            ${s.topic} (${Math.round(s.score)}%)
+          </li>
+        `).join('');
+      } else {
+        weaknessesList.innerHTML = '<li class="text-slate-500">No significant weaknesses identified!</li>';
+      }
+    }
+
+    // Restart assessment
+    function restartAssessment() {
+      document.getElementById('results-screen').classList.add('hidden');
+      document.getElementById('welcome-screen').classList.remove('hidden');
+    }
+
+    // Show history
+    function showHistory() {
+      document.getElementById('results-screen').classList.add('hidden');
+      document.getElementById('history-screen').classList.remove('hidden');
+      renderHistory();
+    }
+
+    // Hide history
+    function hideHistory() {
+      document.getElementById('history-screen').classList.add('hidden');
+      document.getElementById('results-screen').classList.remove('hidden');
+    }
+
+    // Render history
+    function renderHistory() {
+      const container = document.getElementById('history-list');
+      
+      if (assessmentHistory.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-center py-8">No previous assessments found</p>';
+        return;
+      }
+      
+      const sorted = [...assessmentHistory].sort((a, b) => new Date(b.assessment_date) - new Date(a.assessment_date));
+      
+      container.innerHTML = sorted.map(record => {
+        const date = new Date(record.assessment_date);
+        const accuracy = Math.round((record.correct_answers / record.total_questions) * 100);
+        
+        return `
+          <div class="p-4 bg-slate-50 rounded-xl flex items-center justify-between">
+            <div>
+              <div class="font-semibold text-slate-800">${record.student_name}</div>
+              <div class="text-sm text-slate-500">${date.toLocaleDateString()} at ${date.toLocaleTimeString()}</div>
+            </div>
+            <div class="flex gap-6 text-center">
+              <div>
+                <div class="mono font-bold text-violet-600">${record.final_score}</div>
+                <div class="text-xs text-slate-500">Score</div>
+              </div>
+              <div>
+                <div class="mono font-bold text-emerald-600">${accuracy}%</div>
+                <div class="text-xs text-slate-500">Accuracy</div>
+              </div>
+              <div>
+                <div class="mono font-bold text-amber-600">${record.avg_difficulty}</div>
+                <div class="text-xs text-slate-500">Avg Diff</div>
+              </div>
+              <div>
+                <div class="font-bold text-slate-700">${record.performance_level}</div>
+                <div class="text-xs text-slate-500">Level</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d475e94271b7fc2',t:'MTc3MjE5MjAyOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
