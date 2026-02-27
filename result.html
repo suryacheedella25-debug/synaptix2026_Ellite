@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="card">
+<h2>Performance Report</h2>
+<p id="summary"></p>
+<div id="topics"></div>
+</div>
+
+<script>
+const score = localStorage.getItem("score");
+const topicData = JSON.parse(localStorage.getItem("topicData"));
+
+document.getElementById("summary").innerText =
+"Final Score: " + score + "/10";
+
+let topicHTML = "<h3>Topic Analysis:</h3>";
+
+for (let topic in topicData) {
+  let accuracy = (topicData[topic].correct / topicData[topic].total) * 100;
+  let level = accuracy > 80 ? "Strong" :
+              accuracy >= 50 ? "Moderate" : "Weak";
+
+  topicHTML += `<p>${topic} : ${accuracy.toFixed(1)}% → ${level}</p>`;
+}
+
+document.getElementById("topics").innerHTML = topicHTML;
+</script>
+</body>
+</html>

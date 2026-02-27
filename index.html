@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Adaptive Test</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="card">
+<h2>Student Login</h2>
+
+<input type="text" id="name" placeholder="Name" required>
+<input type="text" id="mobile" placeholder="Mobile Number" required>
+<input type="email" id="email" placeholder="Email" required>
+
+<select id="language">
+  <option value="python">Python</option>
+  <option value="java">Java</option>
+  <option value="c">C</option>
+</select>
+
+<button onclick="startTest()">Start Test</button>
+</div>
+
+<script>
+function startTest(){
+  localStorage.setItem("language", document.getElementById("language").value);
+  localStorage.setItem("score", 0);
+  localStorage.setItem("difficulty", "medium");
+  localStorage.setItem("count", 0);
+  localStorage.setItem("topicData", JSON.stringify({}));
+  window.location.href = "quiz.html";
+}
+</script>
+</body>
+</html>
